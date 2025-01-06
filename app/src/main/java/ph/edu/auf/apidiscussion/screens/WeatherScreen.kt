@@ -109,6 +109,7 @@ fun WeatherScreen(viewModel: WeatherViewModel = viewModel()) {
     val weatherData = viewModel.currentWeather.value
     val searchResults by viewModel.searchResults.observeAsState(emptyList())
     var query by remember { mutableStateOf("") }
+    var closestCity by remember { mutableStateOf<Location?>(null) }
 
     // Effects remain the same
     LaunchedEffect(Unit) {
@@ -121,6 +122,7 @@ fun WeatherScreen(viewModel: WeatherViewModel = viewModel()) {
     LaunchedEffect(latitude, longitude) {
         if (latitude != null && longitude != null) {
             viewModel.getWeatherForLocation(latitude!!, longitude!!)
+            viewModel.searchLocation("${latitude!!},${longitude!!}")
         }
     }
 
@@ -279,7 +281,7 @@ fun WeatherScreen(viewModel: WeatherViewModel = viewModel()) {
 
             // Absolutely positioned search results overlay
             AnimatedVisibility(
-                visible = searchResults.isNotEmpty() && query.length > 2,
+                visible = searchResults.isNotEmpty() && query.length > 2 || closestCity != null,
                 modifier = Modifier
                     .padding(horizontal = 24.dp)
                     .padding(top = 76.dp) // Position below search bar
@@ -296,6 +298,35 @@ fun WeatherScreen(viewModel: WeatherViewModel = viewModel()) {
                             .heightIn(max = 200.dp)
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
+                        if (closestCity != null) {
+                            item {
+                                ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            "${closestCity!!.name}, ${closestCity!!.sys.country}",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Filled.LocationOn,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .clickable {
+                                            viewModel.getWeatherForLocation(
+                                                closestCity!!.coord.lat,
+                                                closestCity!!.coord.lon
+                                            )
+                                            query = ""
+                                            viewModel.clearSearchResults()
+                                        }
+                                )
+                                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                            }
+                        }
                         items(searchResults.size) { index ->
                             val location = searchResults[index]
                             ListItem(
