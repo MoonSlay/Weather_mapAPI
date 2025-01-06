@@ -1,7 +1,10 @@
 package ph.edu.auf.apidiscussion.viewmodels.weather
 
-import android.location.Location
+import ph.edu.auf.apidiscussion.screens.Location // Correct import for Location
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +15,9 @@ import kotlinx.coroutines.launch
 import ph.edu.auf.apidiscussion.api.models.WeatherModel
 import ph.edu.auf.apidiscussion.api.repositories.WeatherRepositories
 import ph.edu.auf.apidiscussion.providers.LocationProvider
+import ph.edu.auf.apidiscussion.screens.OpenWeatherApiService
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class WeatherViewModel(private val repository: WeatherRepositories, private val locationProvider: LocationProvider) : ViewModel() {
 
@@ -26,6 +32,27 @@ class WeatherViewModel(private val repository: WeatherRepositories, private val 
 
     private val _longitude = MutableStateFlow<Double?>(null)
     val longitude = _longitude.asStateFlow()
+
+    private val _searchResults = MutableLiveData<List<Location>>()
+    val searchResults: LiveData<List<Location>> = _searchResults
+
+    private val apiService = Retrofit.Builder()
+        .baseUrl("https://api.openweathermap.org/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(OpenWeatherApiService::class.java)
+
+    fun searchLocation(query: String) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.searchLocations(query, "946c93624193ab5ba673caca531c9894")
+                _searchResults.value = response.list
+            } catch (e: Exception) {
+                // Handle errors (e.g., no internet connection)
+                Log.e("WeatherViewModel", "Search failed", e)
+            }
+        }
+    }
 
     fun getCurrentLocation() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -66,7 +93,7 @@ class WeatherViewModel(private val repository: WeatherRepositories, private val 
         }
     }
 
-    fun setLatitude(lat: Double) {
-        _latitude.value = lat
+    fun clearSearchResults() {
+        _searchResults.value = emptyList()
     }
 }

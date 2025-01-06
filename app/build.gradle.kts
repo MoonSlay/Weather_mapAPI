@@ -63,4 +63,11 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Retrofit for API calls
+    implementation (libs.retrofit.v290)
+    implementation (libs.converter.gson.v290)
+
+    // OkHttp for network calls
+    implementation (libs.okhttp)
 }
